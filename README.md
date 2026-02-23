@@ -1,6 +1,6 @@
 # ytdown
 
-A Python utility for downloading YouTube videos and audio content.
+A Python utility for downloading YouTube videos and audio content specially made for Termux.
 
 ## Features
 
