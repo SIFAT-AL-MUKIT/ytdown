@@ -96,6 +96,20 @@ All downloaded files are saved to:
 
 ---
 
+<details>
+<summary>📸 Screenshots</summary>
+
+# Main Menu
+![Main Menu](https://raw.githubusercontent.com/SIFAT-AL-MUKIT/ytdown/main/screenshots/Screenshot_20260223-130114.png)
+
+# Dependency Check
+
+![Dependency Check](https://raw.githubusercontent.com/SIFAT-AL-MUKIT/ytdown/main/screenshots/Screenshot_20260223-130458.png)
+
+</details>
+
+---
+
 ## 👤 Author
 
 **SIFAT-AL-MUKIT**
