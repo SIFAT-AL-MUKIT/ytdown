@@ -1,0 +1,470 @@
+#!/data/data/com.termux/files/usr/bin/env python3
+import os
+import sys
+import time
+import subprocess
+import importlib.util
+
+# ---------- [ PRE-CHECK ] ----------
+try:
+    from rich.console import Console
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.text import Text
+    from rich.prompt import Prompt, Confirm
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+    from rich import box
+except ImportError:
+    print("\n\033[93m[!] UI Library 'rich' is missing.\033[0m")
+    if input("Install 'rich'? (y/n): ").lower() == 'y':
+        os.system('pip install rich')
+        os.execv(sys.executable, ['python'] + sys.argv)
+    else:
+        sys.exit()
+
+libs = {
+    "yt_dlp": None,
+    "mutagen": None,
+    "syncedlyrics": None
+}
+
+for lib_name in libs:
+    try:
+        libs[lib_name] = __import__(lib_name)
+    except ImportError:
+        libs[lib_name] = None
+
+yt_dlp = libs["yt_dlp"]
+mutagen = libs["mutagen"]
+
+# Mutagen imports
+if mutagen:
+    from mutagen.oggopus import OggOpus
+    from mutagen.easyid3 import EasyID3
+    from mutagen.mp4 import MP4, MP4Cover
+
+# ---------- [ CONFIGURATION ] ----------
+SAVE_DIR = "/storage/emulated/0/Download/Termux_ytdown"
+if not os.path.exists(SAVE_DIR):
+    os.makedirs(SAVE_DIR)
+
+console = Console()
+
+# ---------- [ UI HELPERS ] ----------
+def show_banner():
+    """v3.3 স্টাইল ব্যানার"""
+    console.clear()
+    
+    title = Text("🎵 YTDOWN ULTIMATE", style="bold cyan", justify="center")
+    subtitle = Text("Pro Metadata • Opus • Lyrics • By Sifat", style="dim italic white", justify="center")
+    
+    content = Text.assemble(title, "\n", subtitle, justify="center")
+    
+    panel = Panel(
+        content,
+        style="bold blue",
+        border_style="bright_blue",
+        padding=(0, 1),
+        expand=True,
+        box=box.ROUNDED,
+        title="[bold yellow]v3.3[/]",
+        title_align="right"
+    )
+    console.print(panel)
+
+def show_success(msg):
+    console.print(Panel(f"[bold green]✅ {msg}[/]", border_style="green", box=box.ROUNDED, expand=False))
+
+def show_error(msg):
+    console.print(Panel(f"[bold red]❌ {msg}[/]", border_style="red", box=box.ROUNDED, expand=False))
+
+# ---------- [ METADATA FIXER (PROFESSIONAL) ] ----------
+def fix_metadata_manually(filepath, title, artist, album):
+    """
+    প্রফেশনাল ট্যাগিং সিস্টেম।
+    অ্যালবাম নাম না থাকলে টাইটেল ব্যবহার হবে (Single হিসেবে)।
+    """
+    if not mutagen: return
+
+    try:
+        ext = os.path.splitext(filepath)[1].lower()
+        
+        # 1. Opus (.opus)
+        if ext == '.opus':
+            try:
+                audio = OggOpus(filepath)
+                audio['title'] = title
+                audio['artist'] = artist
+                if album: audio['album'] = album
+                audio.save()
+            except: pass
+
+        # 2. MP3 (.mp3)
+        elif ext == '.mp3':
+            try:
+                audio = EasyID3(filepath)
+                audio['title'] = title
+                audio['artist'] = artist
+                if album: audio['album'] = album
+                audio.save()
+            except: pass
+
+        # 3. M4A (.m4a)
+        elif ext == '.m4a':
+            try:
+                audio = MP4(filepath)
+                audio.tags["\xa9nam"] = title # Title
+                audio.tags["\xa9ART"] = artist # Artist
+                if album: audio.tags["\xa9alb"] = album # Album
+                audio.save()
+            except: pass
+                
+    except Exception:
+        pass
+
+# ---------- [ REQUIREMENTS ] ----------
+def check_dependencies():
+    show_banner()
+    console.print("[bold yellow]📦 Dependency Status:[/]\n")
+    
+    table = Table(box=box.SIMPLE, show_header=True, header_style="bold magenta")
+    table.add_column("Library / Tool")
+    table.add_column("Status", justify="center")
+    
+    tools = [
+        ("yt-dlp", "yt_dlp"),
+        ("mutagen", "mutagen"),
+        ("syncedlyrics", "syncedlyrics"),
+        ("rich", "rich"),
+        ("ffmpeg", "ffmpeg")
+    ]
+    
+    all_ok = True
+    
+    for tool_name, module_name in tools:
+        if tool_name == "ffmpeg":
+            if os.system("command -v ffmpeg > /dev/null 2>&1") == 0:
+                status = "[bold green]INSTALLED[/]"
+            else:
+                status = "[bold red]MISSING[/]"
+                all_ok = False
+        else:
+            spec = importlib.util.find_spec(module_name)
+            if spec is not None:
+                status = "[bold green]INSTALLED[/]"
+            else:
+                status = "[bold red]MISSING[/]"
+                all_ok = False
+        table.add_row(tool_name, status)
+        
+    console.print(table, justify="center")
+    
+    if not all_ok:
+        console.print("\n[bold red]![/] [dim]Some tools are missing. Please install them.[/]", justify="center")
+    else:
+        console.print("\n[bold green]✓[/] [dim]All systems operational.[/]", justify="center")
+    
+    Prompt.ask("\n[dim]Press Enter to go back...[/]")
+
+def install_dependencies():
+    show_banner()
+    console.print("[bold yellow]⬇️  Install/Update Requirements[/]\n")
+    
+    if Confirm.ask("Do you want to proceed?"):
+        console.print("\n[dim]Running pip install...[/]")
+        os.system("pip install -U yt-dlp mutagen syncedlyrics rich")
+        
+        if os.system("command -v ffmpeg > /dev/null 2>&1") != 0:
+            console.print("\n[dim]Installing ffmpeg...[/]")
+            os.system("pkg install ffmpeg -y")
+            
+        show_success("Installation Finished!")
+        time.sleep(1)
+        os.execv(sys.executable, ['python'] + sys.argv)
+    else:
+        console.print("[red]Cancelled.[/]")
+        time.sleep(1)
+
+def requirements_menu():
+    while True:
+        show_banner()
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_row("[bold cyan][1][/]", "Check Status")
+        table.add_row("[bold cyan][2][/]", "Install/Update Tools")
+        table.add_row("[bold red]\\[b][/]", "Back")
+        
+        console.print(Panel(table, title="Requirements", title_align="center", border_style="magenta", box=box.ROUNDED, expand=False))
+        
+        choice = Prompt.ask("Select", choices=["1", "2", "b"])
+        if choice == 'b': break
+        elif choice == '1': check_dependencies()
+        elif choice == '2': install_dependencies()
+
+# ---------- [ LOGIC ] ----------
+def check_lib_availability():
+    if yt_dlp is None or mutagen is None:
+        show_error("Core libraries missing!")
+        console.print("[yellow]Please go to [bold]Requirements[/] menu and install tools.[/]")
+        Prompt.ask("\n[dim]Press Enter...[/]")
+        return False
+    return True
+
+def get_lyrics_logic(title, manual_search=False):
+    search_term = title
+    if not manual_search:
+        for w in ["(Official Video)", "[Official Video]", "(Lyrics)", "[Lyrics]", "(Official Audio)", "MV"]:
+            search_term = search_term.replace(w, "").strip()
+    
+    console.print(f"\n[bold blue]🔍 Searching Synced Lyrics for:[/] [italic white]{search_term}[/]")
+    
+    clean_filename = search_term.replace(" ", "_")
+    lrc_path = os.path.join(SAVE_DIR, f"{clean_filename}.lrc")
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        transient=True,
+    ) as progress:
+        progress.add_task(description="Fetching from database...", total=None)
+        os.system(f'syncedlyrics "{search_term}" -o "{lrc_path}" > /dev/null 2>&1')
+
+    if os.path.exists(lrc_path):
+        console.print(f"[green]✅ Lyrics saved: {clean_filename}.lrc[/]")
+    else:
+        console.print("[yellow]⚠️  Lyrics not found automatically.[/]")
+
+def download_engine(url, mode_opts):
+    if not check_lib_availability(): return None
+
+    if 'postprocessors' not in mode_opts:
+        mode_opts['postprocessors'] = []
+
+    mode_opts['postprocessors'].append({'key': 'EmbedThumbnail'})
+    
+    base_opts = {
+        'outtmpl': f'{SAVE_DIR}/%(title)s.%(ext)s',
+        'writethumbnail': True,
+        'quiet': False,
+        'no_mtime': True,
+        'ignoreerrors': True,
+        'addmetadata': False, 
+    }
+    base_opts.update(mode_opts)
+
+    try:
+        console.print(f"\n[bold cyan]⬇️  Starting Download...[/]")
+        with yt_dlp.YoutubeDL(base_opts) as ydl:
+            # 1. Info Fetch
+            info = ydl.extract_info(url, download=True)
+            
+            # 2. Extract Metadata (Smart Logic)
+            title = info.get('title', 'Unknown Title')
+            artist = info.get('uploader', 'Unknown Artist')
+            
+            # ইউটিউব যদি অ্যালবাম ডাটা দেয়, সেটা নেওয়া হবে
+            # না থাকলে টাইটেলকেই অ্যালবাম (Single) হিসেবে ব্যবহার করা হবে
+            album = info.get('album')
+            if not album:
+                album = title # Fallback to Single
+
+            # 3. Clean Title for Filename
+            clean_title = title
+            for w in ["(Official Video)", "[Official Video]", "(Lyrics)", "[Lyrics]", "(Official Audio)"]:
+                clean_title = clean_title.replace(w, "").strip()
+            
+            # 4. Determine Filepath
+            filename = ydl.prepare_filename(info)
+            if 'preferredcodec' in str(mode_opts):
+                final_ext = mode_opts['postprocessors'][0].get('preferredcodec', 'opus')
+                filepath = os.path.splitext(filename)[0] + '.' + final_ext
+            else:
+                filepath = filename
+
+            # 5. Apply Professional Tags
+            console.print("[dim]Writing smart metadata...[/]")
+            fix_metadata_manually(filepath, clean_title, artist, album)
+            
+            show_success(f"Saved: {clean_title}")
+            return clean_title
+
+    except Exception as e:
+        show_error(str(e))
+        return None
+
+# ---------- [ MENUS ] ----------
+def audio_menu(url):
+    show_banner()
+    console.print(f"[bold yellow]🔗 Target:[/] [dim]{url}[/]\n")
+    
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_row("[bold green][1][/]", "🎵 Opus (Best - .opus)")
+    table.add_row("[bold green][2][/]", "🎼 M4A (AAC - .m4a)")
+    table.add_row("[bold green][3][/]", "🎧 MP3 (Converted - .mp3)")
+    table.add_row("[bold red]\\[b][/]", "Back")
+    
+    console.print(Panel(table, title="Audio Format", title_align="center", border_style="blue", box=box.ROUNDED, expand=False))
+    
+    choice = Prompt.ask("Select", choices=["1", "2", "3", "b"])
+    if choice == 'b': return
+
+    opts = {}
+    if choice == '1': 
+        opts = {
+            'format': '251',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'opus'
+            }]
+        }
+    elif choice == '2': 
+        opts = {'format': '140'}
+    elif choice == '3': 
+        opts = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192'
+            }]
+        }
+
+    console.print()
+    want_lyrics = Confirm.ask("📝 Download Synced Lyrics?")
+    saved_title = download_engine(url, opts)
+    
+    if saved_title and want_lyrics:
+        get_lyrics_logic(saved_title)
+    
+    Prompt.ask("\n[dim]Press Enter to continue...[/]")
+
+def video_menu(url):
+    show_banner()
+    console.print(f"[bold yellow]🔗 Target:[/] [dim]{url}[/]\n")
+
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_row("[bold cyan][1][/]", " 4K (2160p)")
+    table.add_row("[bold cyan][2][/]", " 1080p (Full HD)")
+    table.add_row("[bold cyan][3][/]", " 720p (HD)")
+    table.add_row("[bold magenta]\\[m][/]", " Manual Selection")
+    table.add_row("[bold red]\\[b][/]", " Back")
+
+    console.print(Panel(table, title="Video Resolution", title_align="center", border_style="blue", box=box.ROUNDED, expand=False))
+    
+    choice = Prompt.ask("Select", choices=["1", "2", "3", "m", "b"])
+    if choice == 'b': return
+
+    if not check_lib_availability(): return
+
+    opts = {
+        'merge_output_format': 'mp4',
+        'writesubtitles': True,
+        'subtitleslangs': ['all'],
+        'embedsubtitles': True,
+        'addmetadata': True 
+    }
+
+    if choice == 'm':
+        console.print("\n[dim]Fetching formats...[/]")
+        with yt_dlp.YoutubeDL() as ydl:
+            ydl.list_formats(ydl.extract_info(url, download=False))
+        fmt_code = Prompt.ask("\n[bold yellow]Enter Format Code (e.g. 137+140)[/]")
+        if not fmt_code: return
+        opts['format'] = fmt_code
+    else:
+        res_map = {'1': '2160', '2': '1080', '3': '720'}
+        res = res_map.get(choice, '1080')
+        opts['format'] = f"bestvideo[height<={res}][ext=mp4]+bestaudio[ext=m4a]/best[height<={res}][ext=mp4]/best"
+
+    download_engine(url, opts)
+    Prompt.ask("\n[dim]Press Enter to continue...[/]")
+
+def lyrics_only_menu():
+    show_banner()
+    table = Table(show_header=False, box=None, padding=(0, 1))
+    table.add_row("[bold green][1][/]", "Extract from URL")
+    table.add_row("[bold green][2][/]", "Manual Search")
+    table.add_row("[bold red]\\[b][/]", "Back")
+    
+    console.print(Panel(table, title="Lyrics Downloader", title_align="center", border_style="blue", box=box.ROUNDED, expand=False))
+    
+    choice = Prompt.ask("Choose", choices=["1", "2", "b"])
+    if choice == 'b': return
+    
+    if not check_lib_availability(): return
+
+    if choice == '1':
+        url = Prompt.ask("[bold green]Paste URL[/]")
+        if url:
+            with yt_dlp.YoutubeDL({'quiet': True}) as ydl:
+                info = ydl.extract_info(url, download=False)
+                title = info.get('title', '')
+                get_lyrics_logic(title, manual_search=False)
+    elif choice == '2':
+        query = Prompt.ask("[bold green]Enter Artist - Song Name[/]")
+        if query:
+            get_lyrics_logic(query, manual_search=True)
+    Prompt.ask("\n[dim]Press Enter to continue...[/]")
+
+def process_direct_link(url):
+    while True:
+        show_banner()
+        console.print(f"[bold yellow]🔗 Link Detected![/]\n[dim]{url}[/]\n")
+        
+        table = Table(show_header=False, box=None, padding=(0, 1))
+        table.add_row("[bold green][1][/]", "Download Audio")
+        table.add_row("[bold green][2][/]", "Download Video")
+        table.add_row("[bold red]\\[x][/]", "Exit")
+        
+        console.print(Panel(table, border_style="blue", box=box.ROUNDED, expand=False))
+        
+        choice = Prompt.ask("Action", choices=["1", "2", "x"])
+        if choice == '1': audio_menu(url)
+        elif choice == '2': video_menu(url)
+        elif choice == 'x': break
+        
+        if Confirm.ask("Exit now?", default=True):
+            break
+
+def main_menu():
+    while True:
+        show_banner()
+        
+        menu_table = Table(show_header=False, box=None, padding=(0, 2))
+        menu_table.add_column(style="bold green")
+        menu_table.add_column(style="white")
+        
+        menu_table.add_row("[1]", "Download Audio [dim](Opus/MP3)[/]")
+        menu_table.add_row("[2]", "Download Video [dim](4K/1080p)[/]")
+        menu_table.add_row("[3]", "Download Lyrics Only")
+        menu_table.add_row("[4]", "📦 Requirements")
+        menu_table.add_row("[bold red]\\[x][/]", "[bold red]Exit")
+        
+        console.print(Panel(
+            menu_table, 
+            title="Main Menu", 
+            title_align="center",
+            border_style="blue", 
+            box=box.ROUNDED, 
+            expand=False
+        ))
+        
+        choice = Prompt.ask("Option [bold magenta][1/2/3/4/x][/]", choices=["1", "2", "3", "4", "x"], show_choices=False)
+        
+        if choice == 'x': break
+        elif choice == '4': requirements_menu()
+        elif choice == '3': lyrics_only_menu()
+        elif choice in ['1', '2']:
+            url = Prompt.ask("[bold green]Paste YouTube URL[/]")
+            if not url: continue
+            if choice == '1': audio_menu(url)
+            elif choice == '2': video_menu(url)
+
+if __name__ == "__main__":
+    try:
+        with console.screen():
+            if len(sys.argv) > 1:
+                process_direct_link(sys.argv[1])
+            else:
+                main_menu()
+    except KeyboardInterrupt:
+        pass
