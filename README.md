@@ -1,58 +1,107 @@
-# ytdown
+# 🎵 YTDOWN ULTIMATE `v3.3`
 
-A Python utility for downloading YouTube videos and audio content specially made for Termux.
+> A powerful YouTube downloader for **Termux** — with Pro Metadata, Synced Lyrics, and a beautiful TUI.
 
-## Features
+---
 
-- Download YouTube videos in various formats and quality levels
-- Extract audio from YouTube videos
-- Simple command-line interface
-- Support for batch downloads
+## ✨ Features
 
-## Installation
+- 🎵 **Audio Download** — Opus, M4A (AAC), MP3
+- 🎬 **Video Download** — 4K, 1080p, 720p, or manual format selection
+- 🏷️ **Smart Metadata** — Auto-tags Title, Artist, Album (Single fallback)
+- 📝 **Synced Lyrics** — Downloads `.lrc` lyrics file automatically
+- 🖼️ **Thumbnail Embed** — Cover art embedded in audio files
+- 📦 **Built-in Dependency Manager** — Check & install tools from within the app
+- ⚡ **Direct URL Launch** — Pass a URL as argument to skip the menu
 
-1. Clone the repository:
+---
+
+## 📋 Requirements
+
+### Python Packages
+```
+yt-dlp
+mutagen
+syncedlyrics
+rich
+```
+
+### System Tool
+```bash
+pkg install ffmpeg
+```
+
+---
+
+## 🚀 Installation
+
+**1. Clone the repository:**
 ```bash
 git clone https://github.com/SIFAT-AL-MUKIT/ytdown.git
 cd ytdown
 ```
 
-2. Install dependencies:
+**2. Install Python dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-## Usage
-
+**3. Install ffmpeg:**
 ```bash
-python ytdown <YouTube URL>
+pkg install ffmpeg
 ```
 
-### Examples
-
-Download a video:
+**4. (Optional) Install as a global command:**
 ```bash
-python ytdown https://www.youtube.com/watch?v=dQw4w9WgXcQ
+cp ytdown /data/data/com.termux/files/usr/bin/ytdown
+chmod +x /data/data/com.termux/files/usr/bin/ytdown
 ```
 
-Download audio only:
+After step 4, you can run `ytdown` from anywhere in Termux.
+
+---
+
+## 🎮 Usage
+
+**Interactive Menu:**
 ```bash
-python ytdown https://www.youtube.com/watch?v=dQw4w9WgXcQ --audio
+ytdown
 ```
 
-## Requirements
+**Direct URL (skips menu):**
+```bash
+ytdown https://www.youtube.com/watch?v=xxxxx
+```
 
-- Python 3.6+
-- yt-dlp or youtube-dl
+---
 
-## License
+## 📂 Output Location
 
-This project is open source. Feel free to use and modify as needed.
+All downloaded files are saved to:
+```
+/storage/emulated/0/Download/Termux_ytdown/
+```
 
-## Author
+---
+
+## 🗂️ File Formats
+
+| Type  | Format | Details |
+|-------|--------|---------|
+| Audio | `.opus` | Best quality (Recommended) |
+| Audio | `.m4a`  | AAC, YouTube native |
+| Audio | `.mp3`  | 192kbps, converted |
+| Video | `.mp4`  | Up to 4K, with subtitles |
+| Lyrics | `.lrc` | Synced lyrics (LRC format) |
+
+---
+
+## 👤 Author
 
 **SIFAT-AL-MUKIT**
 
-## Contributing
+---
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+## 📄 License
+
+This project is open source. Feel free to use and modify as needed.
