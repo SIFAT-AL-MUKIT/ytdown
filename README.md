@@ -1,4 +1,4 @@
-# 🎵 YTDOWN ULTIMATE `v3.3`
+# 🎵 YTDOWN `v3.3` For Termux
 
 > A powerful YouTube downloader for **Termux** — with Pro Metadata, Synced Lyrics, and a beautiful TUI.
 
